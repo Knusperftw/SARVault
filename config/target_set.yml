@@ -1,19 +1,29 @@
-# Single source of truth for the compound universe (see SPEC.md §6.0).
+# SARVault — compound universe definition (single source of truth; see SPEC.md §6.0).
 # Changing scope = editing this file only (reproducible, reviewable, no code change).
 #
-# TODO(verify): confirm every target ChEMBL ID against the live database before
-# M1, and record the resulting activity volume.
+# Target IDs verified against ChEMBL target report cards (2026-06). Human targets only.
+# Activity volume is an ESTIMATE — confirm exact counts after the first M1 extract.
 chembl_version: "36"
 organism: "Homo sapiens"
 
 targets:
-  # Placeholder entries — IDs MUST be verified against ChEMBL.
-  - chembl_id: "CHEMBL_TODO_001"
-    label: "tubulin"
-  - chembl_id: "CHEMBL_TODO_002"
-    label: "topoisomerase_ii"
+  # --- Tubulin inhibitors (auristatin / maytansinoid ADC payloads; taxanes, vinca) ---
+  - chembl_id: "CHEMBL2095182"       # Tubulin (Homo sapiens, PROTEIN COMPLEX GROUP)
+    label: "tubulin"                 # primary, high-coverage tubulin target
+  - chembl_id: "CHEMBL3832942"       # Tubulin beta (Homo sapiens, PROTEIN FAMILY)
+    label: "tubulin_beta"            # complementary beta-tubulin coverage
+
+  # --- Topoisomerase inhibitors ---
+  - chembl_id: "CHEMBL1781"          # DNA topoisomerase 1 (SINGLE PROTEIN; TOP1, UniProt P11387)
+    label: "topoisomerase_i"         # camptothecin / exatecan (DXd) payload class
+  - chembl_id: "CHEMBL1806"          # DNA topoisomerase 2-alpha (SINGLE PROTEIN; TOP2A, UniProt P11388)
+    label: "topoisomerase_ii_alpha"  # anthracyclines (classical chemo)
 
 activity:
   standard_types: ["IC50", "GI50", "Ki", "Kd", "EC50"]
   require_pchembl: true
-  min_confidence_score: 8
+  # Confidence-score floor. NOTE: single-protein targets (TOP1/TOP2A) carry
+  # confidence 8-9, but the Tubulin COMPLEX GROUP / FAMILY targets carry ~4-7.
+  # A floor of 8 would near-empty the tubulin set, so we keep it permissive
+  # and inspect the confidence distribution after the first extract (M1).
+  min_confidence_score: 5
