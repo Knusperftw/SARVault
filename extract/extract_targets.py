@@ -4,7 +4,7 @@ import requests
 
 from extract.chembl_client import chunked, fetch_all
 
-_CHUNK = 500
+_CHUNK = 50  # small: ChEMBL rejects over-long __in URLs
 
 
 def extract_targets(target_ids, session: requests.Session | None = None) -> list[dict]:
