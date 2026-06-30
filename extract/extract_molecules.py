@@ -1,11 +1,17 @@
-"""Extract ChEMBL molecules for the configured target set.
+"""Extract ChEMBL molecules referenced by the scoped activities."""
 
-Reads config/target_set.yml, queries the ChEMBL API with pagination, and
-returns raw records for the raw-load step. Implemented in milestone M1
-(feat/extract-raw).
-"""
+import requests
+
+from extract.chembl_client import chunked, fetch_all
+
+_CHUNK = 500
 
 
-def extract_molecules():
-    """Fetch molecules records for the configured scope."""
-    raise NotImplementedError("Implemented in M1 (feat/extract-raw).")
+def extract_molecules(molecule_ids, session: requests.Session | None = None) -> list[dict]:
+    """Fetch molecule records for the given ChEMBL molecule IDs."""
+    ids = sorted({mid for mid in molecule_ids if mid})
+    records: list[dict] = []
+    for chunk in chunked(ids, _CHUNK):
+        params = {"molecule_chembl_id__in": ",".join(chunk)}
+        records.extend(fetch_all("molecule", params, session=session))
+    return records
