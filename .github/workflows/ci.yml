@@ -16,7 +16,7 @@ jobs:
       - name: Install dev dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -e ".[dev]"
+          pip install -e ".[dev,extract]"
       - name: Lint
         run: ruff check .
       - name: Test
