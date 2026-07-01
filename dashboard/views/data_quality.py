@@ -15,14 +15,14 @@ def render(con, scope):  # scope intentionally unused: this view is warehouse-wi
     cols[2].metric("Organism", cfg["organism"])
 
     st.subheader("Rows per layer")
-    st.dataframe(data.layer_counts(con), hide_index=True, use_container_width=True)
+    st.dataframe(data.layer_counts(con), hide_index=True, width="stretch")
 
     st.subheader("Assay confidence distribution")
     conf = data.confidence_distribution(con)
-    st.plotly_chart(charts.confidence_bar(conf), use_container_width=True)
-    st.dataframe(conf, hide_index=True, use_container_width=True)
+    st.plotly_chart(charts.confidence_bar(conf), width="stretch")
+    st.dataframe(conf, hide_index=True, width="stretch")
 
     st.subheader("Per-target breakdown")
-    st.dataframe(data.target_summary(con), hide_index=True, use_container_width=True)
+    st.dataframe(data.target_summary(con), hide_index=True, width="stretch")
 
     st.caption("Source: ChEMBL (EMBL-EBI), CC BY-SA. See LICENSE-DATA.md.")

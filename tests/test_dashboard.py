@@ -1,4 +1,4 @@
-"""M5: tests for the dashboard data-access, logic and chart builders."""
+"""Tests for the dashboard data-access, logic, chem and chart builders."""
 
 import importlib
 import os
@@ -8,7 +8,7 @@ import pandas as pd
 import plotly.graph_objects as go
 import pytest
 
-from dashboard import charts, data, logic
+from dashboard import charts, chem, data, logic
 
 
 # --- chart builders (pure) ---
@@ -16,9 +16,7 @@ def _sar_df():
     return pd.DataFrame(
         {
             "compound_key": [1, 2],
-            "target_key": [1, 1],
             "molecule_chembl_id": ["CHEMBL1", "CHEMBL2"],
-            "target_chembl_id": ["CHEMBLT", "CHEMBLT"],
             "target_pref_name": ["Tubulin", "Tubulin"],
             "median_pchembl": [7.5, 6.2],
             "max_pchembl": [7.5, 6.2],
@@ -32,17 +30,16 @@ def test_sar_ranking_bar_returns_figure():
     assert isinstance(charts.sar_ranking_bar(_sar_df()), go.Figure)
 
 
-def test_selectivity_scatter_returns_figure():
+def test_compound_potency_bar_returns_figure():
     df = pd.DataFrame(
-        {
-            "molecule_chembl_id": ["CHEMBL1"],
-            "best_pchembl": [8.0],
-            "selectivity_index": [1.5],
-            "best_target": ["CHEMBLT"],
-            "n_targets": [2],
-        }
+        {"target": ["Tubulin"], "median_pchembl": [7.5], "max_pchembl": [7.5], "n_measurements": [1]}
     )
-    assert isinstance(charts.selectivity_scatter(df), go.Figure)
+    assert isinstance(charts.compound_potency_bar(df), go.Figure)
+
+
+def test_confidence_bar_returns_figure():
+    df = pd.DataFrame({"confidence_score": [5, 9], "n_activities": [10, 5], "n_assays": [1, 1]})
+    assert isinstance(charts.confidence_bar(df), go.Figure)
 
 
 def test_chemical_space_charts_handle_nulls():
@@ -63,13 +60,19 @@ def test_chemical_space_charts_handle_nulls():
     assert isinstance(charts.property_histogram(df, "mw_freebase"), go.Figure)
 
 
-def test_confidence_bar_returns_figure():
-    df = pd.DataFrame({"confidence_score": [5, 8, 9], "n_activities": [1221, 291, 710], "n_assays": [1, 1, 1]})
-    assert isinstance(charts.confidence_bar(df), go.Figure)
+# --- RDKit structure rendering ---
+def test_smiles_to_svg_valid():
+    svg = chem.smiles_to_svg("CCO")
+    assert svg and "<svg" in svg
 
 
-# --- pure scope / metrics logic ---
-def _scope_fixture():
+def test_smiles_to_svg_invalid_returns_none():
+    assert chem.smiles_to_svg("not-a-smiles") is None
+    assert chem.smiles_to_svg("") is None
+
+
+# --- pure scope logic ---
+def _scope_fixtures():
     target_sar = pd.DataFrame(
         {
             "compound_key": [1, 1, 2, 3],
@@ -77,33 +80,46 @@ def _scope_fixture():
             "n_measurements": [2, 1, 3, 1],
         }
     )
-    selectivity = pd.DataFrame({"compound_key": [1, 2, 3], "n_targets": [2, 1, 1]})
-    chem = pd.DataFrame({"compound_key": [1, 2, 3], "is_approved_drug": [True, False, False]})
-    return target_sar, selectivity, chem
+    catalog = pd.DataFrame(
+        {
+            "compound_key": [1, 2, 3],
+            "is_approved_drug": [True, False, False],
+            "best_pchembl": [9.0, 6.0, 5.0],
+            "n_targets": [2, 1, 1],
+        }
+    )
+    return target_sar, catalog
 
 
-def test_scope_compound_keys():
-    target_sar, _, _ = _scope_fixture()
-    assert logic.scope_compound_keys(target_sar, ["Tubulin"]) == {1, 2}
-    assert logic.scope_compound_keys(target_sar, None) == {1, 2, 3}
+def test_resolve_scope_keys_target_and_approval():
+    target_sar, catalog = _scope_fixtures()
+    assert logic.resolve_scope_keys(target_sar, catalog, {}) == {1, 2, 3}
+    assert logic.resolve_scope_keys(target_sar, catalog, {"targets": ["Tubulin"]}) == {1, 2}
+    assert logic.resolve_scope_keys(target_sar, catalog, {"approval": "approved"}) == {1}
+    assert logic.resolve_scope_keys(target_sar, catalog, {"approval": "research"}) == {2, 3}
+
+
+def test_resolve_scope_keys_min_potency():
+    target_sar, catalog = _scope_fixtures()
+    assert logic.resolve_scope_keys(target_sar, catalog, {"min_pchembl": 6.0}) == {1, 2}
 
 
 def test_overview_metrics_respects_scope():
-    target_sar, selectivity, chem = _scope_fixture()
-    all_m = logic.overview_metrics(target_sar, selectivity, chem, None)
+    target_sar, catalog = _scope_fixtures()
+    all_m = logic.overview_metrics(target_sar, catalog, {})
     assert all_m["compounds"] == 3
     assert all_m["pairs"] == 4
     assert all_m["multi_target"] == 1
     assert all_m["approved"] == 1
-    tub = logic.overview_metrics(target_sar, selectivity, chem, ["Tubulin"])
-    assert tub["compounds"] == 2  # compounds 1 and 2
-    assert tub["activities"] == 5  # 2 + 3 measurements
+    tub = logic.overview_metrics(target_sar, catalog, {"targets": ["Tubulin"]})
+    assert tub["compounds"] == 2
+    assert tub["activities"] == 5
     assert tub["targets"] == 1
 
 
 # --- view modules import cleanly ---
 def test_view_modules_import():
-    for name in ("overview", "sar", "selectivity", "chemical_space", "data_quality"):
+    for name in ("overview", "compound_library", "sar", "selectivity", "chemical_space", "data_quality"):
         importlib.import_module(f"dashboard.views.{name}")
 
 
@@ -115,9 +131,10 @@ _WAREHOUSE = Path(os.environ.get("DUCKDB_PATH", "warehouse.duckdb"))
 def test_data_access_against_warehouse():
     con = data.connect(_WAREHOUSE)
     assert {"median_pchembl", "max_pchembl"}.issubset(data.load_target_sar(con).columns)
+    cat = data.load_compound_catalog(con)
+    assert {"canonical_smiles", "best_pchembl", "n_targets"}.issubset(cat.columns)
+    key = int(cat["compound_key"].iloc[0])
+    assert {"target", "median_pchembl"}.issubset(data.compound_target_profile(con, key).columns)
     assert data.list_target_names(con)
-    assert {"target", "n_pairs"}.issubset(data.target_summary(con).columns)
-    assert {"confidence_score", "n_activities"}.issubset(data.confidence_distribution(con).columns)
-    assert {"table", "rows"}.issubset(data.layer_counts(con).columns)
     cfg = data.pipeline_config()
     assert cfg["chembl_version"] and cfg["min_confidence_score"] >= 0

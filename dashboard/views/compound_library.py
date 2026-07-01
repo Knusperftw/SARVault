@@ -1,0 +1,102 @@
+"""Compound library: filterable list + per-compound detail drill-down."""
+
+import pandas as pd
+import streamlit as st
+import streamlit.components.v1 as components
+
+from dashboard import charts, chem, data, logic
+
+_CHEMBL_URL = "https://www.ebi.ac.uk/chembl/compound_report_card/{}/"
+
+_LIST_COLS = [
+    "molecule_chembl_id",
+    "pref_name",
+    "is_approved_drug",
+    "best_pchembl",
+    "best_target",
+    "n_targets",
+    "mw_freebase",
+    "alogp",
+    "num_ro5_violations",
+]
+
+_PROP_ROWS = [
+    ("MW (freebase)", "mw_freebase"),
+    ("logP (AlogP)", "alogp"),
+    ("HBA", "hba"),
+    ("HBD", "hbd"),
+    ("PSA", "psa"),
+    ("Rotatable bonds", "rotatable_bonds"),
+    ("Aromatic rings", "aromatic_rings"),
+    ("Ro5 violations", "num_ro5_violations"),
+    ("Ro3 pass", "ro3_pass"),
+    ("QED", "qed_weighted"),
+    ("Max phase", "max_phase"),
+]
+
+
+def render(con, scope):
+    st.header("📚 Compound library")
+    target_sar = data.load_target_sar(con)
+    catalog = data.load_compound_catalog(con)
+    keys = logic.resolve_scope_keys(target_sar, catalog, scope)
+    cat = catalog[catalog["compound_key"].isin(keys)]
+    if cat.empty:
+        st.info("No compounds in the current scope.")
+        return
+
+    with st.sidebar:
+        st.markdown("### Filters")
+        query = st.text_input("Search (ChEMBL ID / name)").strip().lower()
+        p_lo, p_hi = st.slider("best pChEMBL", 0.0, 14.0, (0.0, 14.0), 0.1)
+        mw_series = cat["mw_freebase"].dropna()
+        mw_max = float(mw_series.max()) if not mw_series.empty else 1000.0
+        mw_lo, mw_hi = st.slider("MW range", 0.0, max(mw_max, 1.0), (0.0, max(mw_max, 1.0)))
+        logp_lo, logp_hi = st.slider("logP range", -5.0, 12.0, (-5.0, 12.0), 0.1)
+        max_ro5 = st.slider("Max Ro5 violations", 0, 4, 4)
+
+    view = cat[
+        cat["best_pchembl"].between(p_lo, p_hi)
+        & cat["mw_freebase"].fillna(0).between(mw_lo, mw_hi)
+        & cat["alogp"].fillna(0).between(logp_lo, logp_hi)
+        & (cat["num_ro5_violations"].fillna(0) <= max_ro5)
+    ]
+    if query:
+        view = view[
+            view["molecule_chembl_id"].str.lower().str.contains(query)
+            | view["pref_name"].fillna("").str.lower().str.contains(query)
+        ]
+
+    st.caption(f"{len(view)} compounds")
+    st.dataframe(
+        view[_LIST_COLS].sort_values("best_pchembl", ascending=False),
+        hide_index=True,
+        width="stretch",
+    )
+    if view.empty:
+        return
+
+    st.subheader("Inspect a compound")
+    options = view.sort_values("best_pchembl", ascending=False)["molecule_chembl_id"].tolist()
+    chosen = st.selectbox("Compound", options, label_visibility="collapsed")
+    row = view[view["molecule_chembl_id"] == chosen].iloc[0]
+
+    st.markdown(f"### {chosen} — {row['pref_name'] or chosen}")
+    st.link_button("View on ChEMBL", _CHEMBL_URL.format(chosen))
+
+    left, right = st.columns(2)
+    with left:
+        svg = chem.smiles_to_svg(row.get("canonical_smiles"))
+        if svg:
+            components.html(svg, height=280)
+        else:
+            st.info("No structure available.")
+        props = [{"property": label, "value": row.get(col)} for label, col in _PROP_ROWS]
+        st.dataframe(pd.DataFrame(props), hide_index=True, width="stretch")
+    with right:
+        st.markdown("**Per-target potency**")
+        profile = data.compound_target_profile(con, int(row["compound_key"]))
+        st.plotly_chart(charts.compound_potency_bar(profile), width="stretch")
+        st.dataframe(profile, hide_index=True, width="stretch")
+        if row["n_targets"] >= 2 and pd.notna(row["selectivity_index"]):
+            st.metric("Selectivity index (log10 fold)", round(float(row["selectivity_index"]), 2))

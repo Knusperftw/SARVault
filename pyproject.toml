@@ -32,6 +32,7 @@ dashboard = [
   "streamlit>=1.36",
   "plotly>=5.22",
   "duckdb>=1.0",
+  "rdkit>=2023.9",
 ]
 dev = [
   "pytest>=8.0",

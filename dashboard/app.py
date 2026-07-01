@@ -4,12 +4,27 @@ Run from the repo root (after building the warehouse with dbt):
     streamlit run dashboard/app.py
 """
 
+from pathlib import Path
+
 import streamlit as st
 
 from dashboard import data
-from dashboard.views import chemical_space, data_quality, overview, sar, selectivity
+from dashboard.views import (
+    chemical_space,
+    compound_library,
+    data_quality,
+    overview,
+    sar,
+    selectivity,
+)
 
-st.set_page_config(page_title="SARVault", layout="wide")
+_ASSETS = Path(__file__).resolve().parents[1] / "assets"
+_LOGO = str(_ASSETS / "logo.svg")
+_ICON = str(_ASSETS / "icon.svg")
+_APPROVAL = ["all", "approved", "research"]
+
+st.set_page_config(page_title="SARVault", page_icon=_ICON, layout="wide")
+st.logo(_LOGO, icon_image=_ICON)
 
 
 @st.cache_resource
@@ -18,11 +33,15 @@ def _connection():
 
 
 def _scope():
-    return st.session_state.get("scope")
+    return st.session_state.get("scope", {})
 
 
 def _overview_page():
     overview.render(_connection(), _scope())
+
+
+def _library_page():
+    compound_library.render(_connection(), _scope())
 
 
 def _sar_page():
@@ -41,10 +60,6 @@ def _data_quality_page():
     data_quality.render(_connection(), _scope())
 
 
-# --- header (shown on every page) ---
-st.markdown("# SAR:green[Vault]")
-st.caption("Interactive, read-only view over the dbt-modelled ChEMBL bioactivity warehouse")
-
 try:
     con = _connection()
 except Exception as exc:  # warehouse missing or unbuilt
@@ -55,26 +70,33 @@ except Exception as exc:  # warehouse missing or unbuilt
     )
     st.stop()
 
+# --- global scope (top right) ---
+header_left, header_right = st.columns([4, 1])
+header_left.caption(
+    "Interactive, read-only view over the dbt-modelled ChEMBL bioactivity warehouse"
+)
+target_names = data.list_target_names(con)
+prev = st.session_state.get("scope", {})
+with header_right.popover("Scope"):
+    sel_targets = st.multiselect("Targets", target_names, default=prev.get("targets", target_names))
+    approval = st.radio(
+        "Approval", _APPROVAL, index=_APPROVAL.index(prev.get("approval", "all")), horizontal=True
+    )
+    min_pchembl = st.slider("Min best pChEMBL", 0.0, 12.0, float(prev.get("min_pchembl", 0.0)), 0.5)
+st.session_state["scope"] = {
+    "targets": sel_targets or target_names,
+    "approval": approval,
+    "min_pchembl": min_pchembl,
+}
+
 nav = st.navigation(
     [
         st.Page(_overview_page, title="Overview", icon="🏠", default=True),
+        st.Page(_library_page, title="Compound Library", icon="📚"),
         st.Page(_sar_page, title="SAR Ranking", icon="📊"),
         st.Page(_selectivity_page, title="Selectivity", icon="🎯"),
         st.Page(_chemical_space_page, title="Chemical Space", icon="🧪"),
         st.Page(_data_quality_page, title="Data Quality", icon="🔎"),
     ]
 )
-
-# --- global scope filter (sidebar) ---
-target_names = data.list_target_names(con)
-st.sidebar.divider()
-st.sidebar.markdown("**🔬 Scope — targets**")
-chosen = st.sidebar.multiselect(
-    "Targets",
-    target_names,
-    default=st.session_state.get("scope", target_names),
-    label_visibility="collapsed",
-)
-st.session_state["scope"] = chosen or target_names
-
 nav.run()

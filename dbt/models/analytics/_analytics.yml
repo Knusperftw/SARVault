@@ -42,3 +42,21 @@ models:
               arguments:
                 to: ref('dim_compound')
                 field: compound_key
+
+  - name: mart_compound_catalog
+    description: "Per-compound catalog: identity, structure, physchem and potency summary."
+    columns:
+      - name: compound_key
+        tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_compound')
+                field: compound_key
+      - name: molecule_chembl_id
+        tests: [not_null]
+      - name: best_pchembl
+        tests: [not_null]
+      - name: n_targets
+        tests: [not_null]
