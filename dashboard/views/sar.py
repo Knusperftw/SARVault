@@ -7,7 +7,10 @@ from dashboard import charts, data, logic
 
 def render(con, scope):
     st.header("📊 SAR ranking")
-    sar = logic.scoped_target_sar(data.load_target_sar(con), scope)
+    target_sar = data.load_target_sar(con)
+    catalog = data.load_compound_catalog(con)
+    keys = logic.resolve_scope_keys(target_sar, catalog, scope)
+    sar = logic.scoped_target_sar(target_sar, scope, keys)
     if sar.empty:
         st.info("No data in the current scope.")
         return
@@ -24,9 +27,9 @@ def render(con, scope):
         & (sar["median_pchembl"].between(low, high))
     ]
     st.caption(f"{len(view)} compound-target pairs")
-    st.plotly_chart(charts.sar_ranking_bar(view), use_container_width=True)
+    st.plotly_chart(charts.sar_ranking_bar(view), width="stretch")
     st.dataframe(
         view.sort_values("median_pchembl", ascending=False),
         hide_index=True,
-        use_container_width=True,
+        width="stretch",
     )

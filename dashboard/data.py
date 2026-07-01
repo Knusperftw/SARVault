@@ -25,6 +25,29 @@ def load_chemical_space(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
     return con.execute("select * from main_analytics.mart_chemical_space").df()
 
 
+def load_compound_catalog(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
+    return con.execute("select * from main_analytics.mart_compound_catalog").df()
+
+
+def compound_target_profile(con: duckdb.DuckDBPyConnection, compound_key: int) -> pd.DataFrame:
+    """Per-target potency for one compound (its SAR fingerprint)."""
+    return con.execute(
+        """
+        select
+            t.pref_name               as target,
+            round(s.median_pchembl, 2) as median_pchembl,
+            round(s.max_pchembl, 2)    as max_pchembl,
+            s.n_measurements,
+            s.n_assays
+        from main_analytics.mart_target_sar s
+        join main_marts.dim_target t on s.target_key = t.target_key
+        where s.compound_key = ?
+        order by s.median_pchembl desc
+        """,
+        [compound_key],
+    ).df()
+
+
 def list_target_names(con: duckdb.DuckDBPyConnection) -> list[str]:
     return (
         con.execute("select pref_name from main_marts.dim_target order by pref_name")

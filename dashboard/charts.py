@@ -57,6 +57,20 @@ def property_histogram(df, column: str = "mw_freebase") -> go.Figure:
     return fig
 
 
+def compound_potency_bar(df) -> go.Figure:
+    """Per-target median potency for a single compound (its SAR fingerprint)."""
+    fig = px.bar(
+        df,
+        x="median_pchembl",
+        y="target",
+        orientation="h",
+        hover_data=["max_pchembl", "n_measurements"],
+        labels={"median_pchembl": "median pChEMBL", "target": ""},
+    )
+    fig.update_layout(yaxis={"categoryorder": "total ascending"}, height=260)
+    return fig
+
+
 def confidence_bar(df) -> go.Figure:
     """Bar chart of activities per ChEMBL assay confidence score."""
     fig = px.bar(

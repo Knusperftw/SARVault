@@ -7,12 +7,13 @@ from dashboard import data, logic
 _GUIDE = """
 **Use the pages in the sidebar:**
 
-- **📊 SAR Ranking** — rank compounds by median potency for a chosen target, with measurement and pChEMBL filters.
-- **🎯 Selectivity** — multi-target compounds only: selectivity index (best vs. second-best target) against potency.
-- **🧪 Chemical Space** — physicochemical profile with an approved-vs-research view over the payload chemical space.
-- **🔎 Data Quality** — provenance: ChEMBL release, rows per layer, and the assay-confidence distribution.
+- **📚 Compound Library** — browse and filter all compounds; open one for structure, properties and its per-target potency.
+- **📊 SAR Ranking** — rank compounds by median potency for a chosen target.
+- **🎯 Selectivity** — multi-target compounds: selectivity index (best vs. second-best target) against potency.
+- **🧪 Chemical Space** — physicochemical profile with an approved-vs-research view.
+- **🔎 Data Quality** — provenance: ChEMBL release, rows per layer, assay-confidence distribution.
 
-The **🔬 Scope** selector in the sidebar narrows every page to the selected targets.
+The **Scope** selector (top right) narrows every page by target, approval status and minimum potency.
 """
 
 
@@ -24,10 +25,9 @@ def render(con, scope):
         "and classical chemotherapeutics."
     )
 
-    sar = data.load_target_sar(con)
-    metrics = logic.overview_metrics(
-        sar, data.load_selectivity(con), data.load_chemical_space(con), scope
-    )
+    target_sar = data.load_target_sar(con)
+    catalog = data.load_compound_catalog(con)
+    metrics = logic.overview_metrics(target_sar, catalog, scope)
 
     row1 = st.columns(3)
     row1[0].metric("Compounds", f"{metrics['compounds']:,}")
@@ -40,9 +40,10 @@ def render(con, scope):
 
     st.subheader("Per-target overview")
     summary = data.target_summary(con)
-    if scope:
-        summary = summary[summary["target"].isin(scope)]
-    st.dataframe(summary, hide_index=True, use_container_width=True)
+    targets = (scope or {}).get("targets")
+    if targets:
+        summary = summary[summary["target"].isin(targets)]
+    st.dataframe(summary, hide_index=True, width="stretch")
 
     st.markdown(_GUIDE)
     st.caption(
