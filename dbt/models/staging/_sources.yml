@@ -10,3 +10,4 @@ sources:
       - name: molecules
       - name: targets
       - name: assays
+      - name: xref_unichem

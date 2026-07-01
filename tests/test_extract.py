@@ -102,3 +102,34 @@ def test_pandera_schema_rejects_missing_provenance():
     validate("molecules", valid)  # should not raise
     with pytest.raises(Exception):
         validate("molecules", valid.drop(columns=["_row_hash"]))
+
+
+def test_load_unichem_mappings_filters_and_labels(tmp_path):
+    """UniChem bulk reader: header dropped via id-join, filtered to our compounds."""
+    import gzip
+
+    from extract import unichem
+
+    path = tmp_path / "src1src22.txt.gz"
+    with gzip.open(path, "wt") as fh:
+        fh.write("From src:'1'\tTo src:'22'\n")  # header -> dropped (not in ids)
+        fh.write("CHEMBL25\t2244\n")
+        fh.write("CHEMBL999\t9999\n")  # out of scope -> filtered out
+    df = unichem.load_unichem_mappings(tmp_path, ["CHEMBL25"], {"pubchem": 22})
+    assert list(df["molecule_chembl_id"]) == ["CHEMBL25"]
+    assert list(df["source"]) == ["pubchem"]
+    assert list(df["xref_id"]) == ["2244"]
+
+
+def test_land_unichem_writes_provenance(tmp_path):
+    import pandas as pd
+
+    from extract import unichem
+
+    df = pd.DataFrame(
+        {"molecule_chembl_id": ["CHEMBL25"], "source": ["pubchem"], "xref_id": ["2244"]}
+    )
+    out = unichem.land_unichem(df, "36", raw_dir=tmp_path)
+    landed = pd.read_parquet(out)
+    for col in unichem.PROVENANCE_COLUMNS:
+        assert col in landed.columns
