@@ -6,3 +6,5 @@ bindingdb,BindingDB,https://www.bindingdb.org/rwd/bind/chemsearch/marvin/MolStru
 zinc,ZINC,https://zinc20.docking.org/substances/{id}/
 surechembl,SureChEMBL,https://www.surechembl.org/chemical/{id}
 wikipedia,Wikipedia,https://en.wikipedia.org/wiki/{id}
+ema,EMA,https://www.ema.europa.eu/en/medicines/{id}
+dailymed,DailyMed,https://dailymed.nlm.nih.gov/dailymed/search.cfm?query={id}
