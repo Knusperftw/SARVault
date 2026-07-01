@@ -33,6 +33,38 @@ def scoped_target_sar(target_sar, scope, keys):
     return df
 
 
+_RO5_RULES = (
+    ("MW ≤ 500", "mw_freebase", 500),
+    ("logP ≤ 5", "alogp", 5),
+    ("HBD ≤ 5", "hbd", 5),
+    ("HBA ≤ 10", "hba", 10),
+)
+
+
+def _missing(value) -> bool:
+    return value is None or (isinstance(value, float) and value != value)
+
+
+def ro5_breakdown(row):
+    """Per-criterion Lipinski Ro5 pass/fail plus the computed violation count.
+
+    A criterion with a missing descriptor is reported as unknown (pass=None) and
+    is not counted as a violation.
+    """
+    items = []
+    violations = 0
+    for label, col, threshold in _RO5_RULES:
+        value = row.get(col)
+        if _missing(value):
+            passed = None
+        else:
+            passed = float(value) <= threshold
+            if not passed:
+                violations += 1
+        items.append({"label": label, "value": value, "pass": passed})
+    return {"items": items, "violations": violations}
+
+
 def overview_metrics(target_sar, catalog, scope):
     """Headline metrics for the landing page, restricted to the current scope."""
     keys = resolve_scope_keys(target_sar, catalog, scope)
