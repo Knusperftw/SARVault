@@ -1,7 +1,7 @@
 source,display_name,url_template
-pubchem,PubChem,https://pubchem.ncbi.nlm.nih.gov/substance/{id}
+pubchem,PubChem,https://pubchem.ncbi.nlm.nih.gov/compound/{id}
 drugbank,DrugBank,https://go.drugbank.com/drugs/{id}
-pdbe,PDBe,https://www.ebi.ac.uk/pdbe/entry/pdb/{id}
+pdbe,PDBe,https://www.ebi.ac.uk/pdbe-srv/pdbechem/chemicalCompound/show/{id}
 bindingdb,BindingDB,https://www.bindingdb.org/rwd/bind/chemsearch/marvin/MolStructure.jsp?monomerid={id}
 zinc,ZINC,https://zinc20.docking.org/substances/{id}/
 surechembl,SureChEMBL,https://www.surechembl.org/chemical/{id}
