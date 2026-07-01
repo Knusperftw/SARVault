@@ -1,6 +1,7 @@
 """Compound library: filterable list + per-compound detail drill-down."""
 
 import base64
+import math
 
 import pandas as pd
 import streamlit as st
@@ -44,9 +45,34 @@ def _fmt(value) -> str:
     return str(value)
 
 
+def _num(value) -> str:
+    if value is None or (isinstance(value, float) and pd.isna(value)):
+        return "—"
+    fv = float(value)
+    return str(int(fv)) if fv.is_integer() else f"{fv:.1f}"
+
+
 def _structure_html(svg: str) -> str:
     b64 = base64.b64encode(svg.encode()).decode()
     return f'<img src="data:image/svg+xml;base64,{b64}" width="320">'
+
+
+def _int_max(series, default: int) -> int:
+    clean = series.dropna()
+    return int(clean.max()) if not clean.empty else default
+
+
+def _ro5_line(row) -> str:
+    breakdown = logic.ro5_breakdown(row)
+    marks = []
+    for item in breakdown["items"]:
+        mark = "✓" if item["pass"] else ("✗" if item["pass"] is False else "—")
+        marks.append(f"{item['label']} {mark} ({_num(item['value'])})")
+    line = " · ".join(marks) + f" → {breakdown['violations']} violation(s)"
+    official = row.get("num_ro5_violations")
+    if pd.notna(official):
+        line += f" · ChEMBL: {int(official)}"
+    return line
 
 
 def render(con, scope):
@@ -62,17 +88,26 @@ def render(con, scope):
     with st.sidebar:
         st.markdown("### Filters")
         query = st.text_input("Search (ChEMBL ID / name)").strip().lower()
-        p_lo, p_hi = st.slider("best pChEMBL", 0.0, 14.0, (0.0, 14.0), 0.1)
+        p_lo, p_hi = st.slider("best pChEMBL", 0.0, 14.0, (0.0, 14.0), step=0.5)
         mw_series = cat["mw_freebase"].dropna()
-        mw_max = float(mw_series.max()) if not mw_series.empty else 1000.0
-        mw_lo, mw_hi = st.slider("MW range", 0.0, max(mw_max, 1.0), (0.0, max(mw_max, 1.0)))
-        logp_lo, logp_hi = st.slider("logP range", -5.0, 12.0, (-5.0, 12.0), 0.1)
+        mw_top = mw_series.max() if not mw_series.empty else 1000.0
+        mw_ceiling = int(math.ceil(mw_top / 50) * 50)
+        mw_lo, mw_hi = st.slider("MW range", 0, mw_ceiling, (0, mw_ceiling), step=50)
+        logp_lo, logp_hi = st.slider("logP range", -5.0, 12.0, (-5.0, 12.0), step=0.5)
+        hbd_max = _int_max(cat["hbd"], 10)
+        hbd_lo, hbd_hi = st.slider("HBD range", 0, max(hbd_max, 1), (0, max(hbd_max, 1)))
+        hba_max = _int_max(cat["hba"], 15)
+        hba_lo, hba_hi = st.slider("HBA range", 0, max(hba_max, 1), (0, max(hba_max, 1)))
         max_ro5 = st.slider("Max Ro5 violations", 0, 4, 4)
 
+    # between() is inclusive on both ends, so a compound on a boundary (e.g. MW 500)
+    # matches both the 450-500 and 500-550 windows.
     view = cat[
         cat["best_pchembl"].between(p_lo, p_hi)
         & cat["mw_freebase"].fillna(0).between(mw_lo, mw_hi)
         & cat["alogp"].fillna(0).between(logp_lo, logp_hi)
+        & cat["hbd"].fillna(0).between(hbd_lo, hbd_hi)
+        & cat["hba"].fillna(0).between(hba_lo, hba_hi)
         & (cat["num_ro5_violations"].fillna(0) <= max_ro5)
     ]
     if query:
@@ -81,19 +116,29 @@ def render(con, scope):
             | view["pref_name"].fillna("").str.lower().str.contains(query)
         ]
 
-    st.caption(f"{len(view)} compounds")
-    st.dataframe(
-        view[_LIST_COLS].sort_values("best_pchembl", ascending=False),
+    disp = view.sort_values("best_pchembl", ascending=False).reset_index(drop=True)
+    st.caption(f"{len(disp)} compounds — click a row to inspect it")
+    event = st.dataframe(
+        disp[_LIST_COLS],
         hide_index=True,
         width="stretch",
+        on_select="rerun",
+        selection_mode="single-row",
+        key="lib_rows",
     )
-    if view.empty:
+    if disp.empty:
         return
 
+    selected_rows = event.selection.rows
+    if selected_rows and selected_rows[0] < len(disp):
+        st.session_state["inspect_compound"] = disp.iloc[selected_rows[0]]["molecule_chembl_id"]
+
     st.subheader("Inspect a compound")
-    options = view.sort_values("best_pchembl", ascending=False)["molecule_chembl_id"].tolist()
-    chosen = st.selectbox("Compound", options, label_visibility="collapsed")
-    row = view[view["molecule_chembl_id"] == chosen].iloc[0]
+    options = disp["molecule_chembl_id"].tolist()
+    if st.session_state.get("inspect_compound") not in options:
+        st.session_state["inspect_compound"] = options[0]
+    chosen = st.selectbox("Compound", options, key="inspect_compound", label_visibility="collapsed")
+    row = disp[disp["molecule_chembl_id"] == chosen].iloc[0]
 
     st.markdown(f"### {chosen} — {row['pref_name'] or chosen}")
     st.link_button("View on ChEMBL", _CHEMBL_URL.format(chosen))
@@ -116,3 +161,11 @@ def render(con, scope):
         st.dataframe(profile, hide_index=True, width="stretch")
         if row["n_targets"] >= 2 and pd.notna(row["selectivity_index"]):
             st.metric("Selectivity index (log10 fold)", round(float(row["selectivity_index"]), 2))
+
+    st.divider()
+    st.markdown(f"**Lipinski Ro5** — {_ro5_line(row)}")
+    st.caption(
+        "Ro5 is only weakly predictive here: ADC payloads / cytotoxics are "
+        "antibody-delivered rather than orally absorbed, and highly potent payloads "
+        "often violate it by design."
+    )

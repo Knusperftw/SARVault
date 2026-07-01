@@ -104,6 +104,19 @@ def test_resolve_scope_keys_min_potency():
     assert logic.resolve_scope_keys(target_sar, catalog, {"min_pchembl": 6.0}) == {1, 2}
 
 
+def test_ro5_breakdown():
+    row = pd.Series({"mw_freebase": 451.0, "alogp": 6.9, "hbd": 1, "hba": 4, "num_ro5_violations": 1})
+    result = logic.ro5_breakdown(row)
+    assert result["violations"] == 1
+    by_label = {item["label"]: item["pass"] for item in result["items"]}
+    assert by_label["logP ≤ 5"] is False
+    assert by_label["MW ≤ 500"] is True
+
+    missing = logic.ro5_breakdown(pd.Series({"mw_freebase": None, "alogp": 2.0, "hbd": 1, "hba": 4}))
+    assert missing["violations"] == 0
+    assert missing["items"][0]["pass"] is None
+
+
 def test_overview_metrics_respects_scope():
     target_sar, catalog = _scope_fixtures()
     all_m = logic.overview_metrics(target_sar, catalog, {})
