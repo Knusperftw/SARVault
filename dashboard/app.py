@@ -91,10 +91,14 @@ with header_right.popover("Scope", width="stretch"):
         "Approval", _APPROVAL, index=_APPROVAL.index(prev.get("approval", "all")), horizontal=True
     )
     min_pchembl = st.slider("Min best pChEMBL", 0.0, 12.0, float(prev.get("min_pchembl", 0.0)), 0.5)
+    structure_only = st.toggle(
+        "Only with 3D crystal structure", value=bool(prev.get("structure_only", False))
+    )
 st.session_state["scope"] = {
     "targets": sel_targets or target_names,
     "approval": approval,
     "min_pchembl": min_pchembl,
+    "structure_only": structure_only,
 }
 
 nav = st.navigation(

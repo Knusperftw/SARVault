@@ -15,6 +15,7 @@ _LIST_COLS = [
     "molecule_chembl_id",
     "pref_name",
     "is_approved_drug",
+    "has_pdb",
     "best_pchembl",
     "best_target",
     "n_targets",
@@ -22,6 +23,24 @@ _LIST_COLS = [
     "alogp",
     "num_ro5_violations",
 ]
+
+
+def _list_column_config():
+    """Display config for the compound list: formatted numbers, flags, potency bar."""
+    return {
+        "molecule_chembl_id": st.column_config.TextColumn("ChEMBL ID"),
+        "pref_name": st.column_config.TextColumn("Name"),
+        "is_approved_drug": st.column_config.CheckboxColumn("Approved"),
+        "has_pdb": st.column_config.CheckboxColumn("🧬 3D", help="Has a co-crystal PDB entry"),
+        "best_pchembl": st.column_config.ProgressColumn(
+            "Best pChEMBL", format="%.2f", min_value=0.0, max_value=14.0
+        ),
+        "best_target": st.column_config.TextColumn("Best target"),
+        "n_targets": st.column_config.NumberColumn("Targets", format="%d"),
+        "mw_freebase": st.column_config.NumberColumn("MW", format="%.0f"),
+        "alogp": st.column_config.NumberColumn("logP", format="%.1f"),
+        "num_ro5_violations": st.column_config.NumberColumn("Ro5 viol.", format="%d"),
+    }
 
 _SLIM_PROPS = [
     ("HBA", "hba"),
@@ -240,6 +259,7 @@ def render(con, scope):
         disp[_LIST_COLS],
         hide_index=True,
         width="stretch",
+        column_config=_list_column_config(),
         on_select="rerun",
         selection_mode="single-row",
         key="lib_rows",

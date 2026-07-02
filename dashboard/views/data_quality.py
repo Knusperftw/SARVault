@@ -22,6 +22,11 @@ def render(con, scope):  # scope intentionally unused: this view is warehouse-wi
     st.plotly_chart(charts.confidence_bar(conf), width="stretch")
     st.dataframe(conf, hide_index=True, width="stretch")
 
+    st.subheader("Endpoint (standard type) distribution")
+    stype = data.standard_type_distribution(con)
+    st.plotly_chart(charts.standard_type_bar(stype), width="stretch")
+    st.dataframe(stype, hide_index=True, width="stretch")
+
     st.subheader("Per-target breakdown")
     st.dataframe(data.target_summary(con), hide_index=True, width="stretch")
 

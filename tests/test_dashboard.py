@@ -47,6 +47,13 @@ def test_confidence_bar_returns_figure():
     assert isinstance(charts.confidence_bar(df), go.Figure)
 
 
+def test_standard_type_bar_returns_figure():
+    df = pd.DataFrame(
+        {"standard_type": ["IC50", "Ki"], "n_activities": [10, 3], "n_compounds": [8, 2]}
+    )
+    assert isinstance(charts.standard_type_bar(df), go.Figure)
+
+
 def test_chemical_space_charts_handle_nulls():
     df = pd.DataFrame(
         {
@@ -96,6 +103,7 @@ def _scope_fixtures():
             "is_approved_drug": [True, False, False],
             "best_pchembl": [9.0, 6.0, 5.0],
             "n_targets": [2, 1, 1],
+            "has_pdb": [True, False, True],
         }
     )
     return target_sar, catalog
@@ -112,6 +120,19 @@ def test_resolve_scope_keys_target_and_approval():
 def test_resolve_scope_keys_min_potency():
     target_sar, catalog = _scope_fixtures()
     assert logic.resolve_scope_keys(target_sar, catalog, {"min_pchembl": 6.0}) == {1, 2}
+
+
+def test_resolve_scope_keys_structure_only():
+    target_sar, catalog = _scope_fixtures()
+    assert logic.resolve_scope_keys(target_sar, catalog, {"structure_only": True}) == {1, 3}
+    assert logic.resolve_scope_keys(target_sar, catalog, {"structure_only": False}) == {1, 2, 3}
+    # structure_only composes with the other facets (approved -> only compound 1)
+    assert (
+        logic.resolve_scope_keys(
+            target_sar, catalog, {"structure_only": True, "approval": "approved"}
+        )
+        == {1}
+    )
 
 
 def test_ro5_breakdown():
@@ -176,7 +197,12 @@ def test_data_access_against_warehouse():
     con = data.connect(_WAREHOUSE)
     assert {"median_pchembl", "max_pchembl"}.issubset(data.load_target_sar(con).columns)
     cat = data.load_compound_catalog(con)
-    assert {"canonical_smiles", "best_pchembl", "n_targets"}.issubset(cat.columns)
+    assert {"canonical_smiles", "best_pchembl", "n_targets", "has_pdb", "n_pdb_entries"}.issubset(
+        cat.columns
+    )
+    assert {"standard_type", "n_activities"}.issubset(
+        data.standard_type_distribution(con).columns
+    )
     key = int(cat["compound_key"].iloc[0])
     assert {"target", "median_pchembl"}.issubset(data.compound_target_profile(con, key).columns)
     assert {"display_name", "xref_id", "url"}.issubset(data.compound_xrefs(con, key).columns)

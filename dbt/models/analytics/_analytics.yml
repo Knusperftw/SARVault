@@ -60,6 +60,10 @@ models:
         tests: [not_null]
       - name: n_targets
         tests: [not_null]
+      - name: has_pdb
+        tests: [not_null]
+      - name: n_pdb_entries
+        tests: [not_null]
 
   - name: mart_compound_xref
     description: "Compound external cross-references with resolved URLs."
