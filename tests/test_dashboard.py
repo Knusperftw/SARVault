@@ -255,6 +255,24 @@ def test_compound_property_formatting_is_string():
     assert _fmt(float("nan")) == "—"
 
 
+# --- warehouse bootstrap (cloud fetch-at-boot) ---
+def test_ensure_warehouse_existing_is_untouched(tmp_path):
+    db = tmp_path / "warehouse.duckdb"
+    db.write_bytes(b"already here")
+    # a present file is returned as-is even if a url is given (no overwrite)
+    out = data.ensure_warehouse(db_path=str(db), url="https://example.invalid/w.duckdb")
+    assert out == db
+    assert db.read_bytes() == b"already here"
+
+
+def test_ensure_warehouse_missing_without_url_no_error(tmp_path):
+    db = tmp_path / "warehouse.duckdb"
+    # no url -> no download attempt, caller handles the missing file downstream
+    out = data.ensure_warehouse(db_path=str(db), url=None)
+    assert out == db
+    assert not db.exists()
+
+
 # --- data access against a real (fixture-built) warehouse ---
 _WAREHOUSE = Path(os.environ.get("DUCKDB_PATH", "warehouse.duckdb"))
 

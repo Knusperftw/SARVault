@@ -7,6 +7,7 @@ Run from the repo root (after building the warehouse with dbt):
 from pathlib import Path
 
 import base64
+import os
 
 import streamlit as st
 
@@ -38,6 +39,15 @@ def _connection():
     return data.connect()
 
 
+def _warehouse_url() -> str | None:
+    """Warehouse download URL from Streamlit secrets or env (cloud deploy only)."""
+    try:
+        url = st.secrets.get("SARVAULT_WAREHOUSE_URL")
+    except Exception:  # no secrets file locally
+        url = None
+    return url or os.environ.get("SARVAULT_WAREHOUSE_URL")
+
+
 def _scope():
     return st.session_state.get("scope", {})
 
@@ -67,6 +77,7 @@ def _data_quality_page():
 
 
 try:
+    data.ensure_warehouse(url=_warehouse_url())
     con = _connection()
 except Exception as exc:  # warehouse missing or unbuilt
     st.error(

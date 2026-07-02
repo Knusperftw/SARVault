@@ -1,0 +1,10 @@
+# Streamlit Community Cloud runtime dependencies for the SARVault dashboard.
+# Mirrors the [dashboard] extra in pyproject.toml, plus pyyaml (read by
+# extract.config for the Data Quality provenance panel). streamlit itself is
+# preinstalled on Community Cloud but is pinned here for a reproducible floor.
+streamlit>=1.36
+plotly>=5.22
+duckdb>=1.0
+rdkit>=2023.9
+pandas>=2.0
+pyyaml>=6.0
