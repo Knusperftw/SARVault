@@ -1,6 +1,7 @@
 """Read-only data access for the SARVault dashboard (queries the DuckDB warehouse)."""
 
 import os
+from pathlib import Path
 
 import duckdb
 import pandas as pd
@@ -11,6 +12,28 @@ DEFAULT_DB = os.environ.get("DUCKDB_PATH", "warehouse.duckdb")
 def connect(db_path: str | None = None) -> duckdb.DuckDBPyConnection:
     """Open a read-only connection to the warehouse."""
     return duckdb.connect(str(db_path or DEFAULT_DB), read_only=True)
+
+
+def ensure_warehouse(db_path: str | None = None, url: str | None = None) -> Path:
+    """Ensure the warehouse file exists locally; fetch it from ``url`` if missing.
+
+    On a fresh cloud deploy (e.g. Streamlit Community Cloud) the DuckDB file is
+    not tracked in git, so it is downloaded once from a stable URL — a GitHub
+    Release asset — and cached in the container filesystem. Local runs that
+    already have a warehouse are left untouched, and if no URL is provided the
+    caller surfaces the usual "warehouse missing" error.
+    """
+    path = Path(db_path or DEFAULT_DB)
+    if path.exists() or not url:
+        return path
+    import urllib.request
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(path.suffix + ".part")
+    # URL comes from app config/secrets (a trusted GitHub Release asset), not user input.
+    urllib.request.urlretrieve(url, tmp)
+    tmp.replace(path)
+    return path
 
 
 def load_target_sar(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
