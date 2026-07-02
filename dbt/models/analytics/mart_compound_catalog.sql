@@ -5,6 +5,13 @@ with selectivity as (
 ),
 compound as (
     select * from {{ ref('dim_compound') }}
+),
+pdb as (
+    -- Co-crystal coverage per compound; LEFT-joined so compounds without a
+    -- resolved PDB entry default to zero (keeps the catalog grain = compound).
+    select compound_key, count(distinct pdb_id) as n_pdb_entries
+    from {{ ref('mart_compound_pdb') }}
+    group by compound_key
 )
 
 select
@@ -29,6 +36,9 @@ select
     s.n_targets,
     s.best_pchembl,
     s.best_target,
-    s.selectivity_index
+    s.selectivity_index,
+    coalesce(p.n_pdb_entries, 0)     as n_pdb_entries,
+    coalesce(p.n_pdb_entries, 0) > 0 as has_pdb
 from selectivity s
 join compound c on s.compound_key = c.compound_key
+left join pdb p on s.compound_key = p.compound_key

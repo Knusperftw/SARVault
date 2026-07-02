@@ -122,6 +122,21 @@ def confidence_distribution(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
     ).df()
 
 
+def standard_type_distribution(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
+    """Activity and compound counts per ChEMBL standard (endpoint) type."""
+    return con.execute(
+        """
+        select
+            standard_type,
+            count(*)                     as n_activities,
+            count(distinct compound_key) as n_compounds
+        from main_marts.fact_activity
+        group by standard_type
+        order by n_activities desc
+        """
+    ).df()
+
+
 def layer_counts(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
     """Row counts per modelled layer, for the provenance view."""
     tables = {

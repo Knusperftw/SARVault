@@ -75,6 +75,21 @@ def compound_potency_bar(df) -> go.Figure:
     return fig
 
 
+def standard_type_bar(df) -> go.Figure:
+    """Bar chart of activities per ChEMBL standard (endpoint) type: IC50, Ki, ..."""
+    fig = px.bar(
+        df,
+        x="standard_type",
+        y="n_activities",
+        hover_data=["n_compounds"],
+        labels={"standard_type": "standard type", "n_activities": "activities"},
+    )
+    fig.update_layout(
+        height=360, xaxis={"type": "category", "categoryorder": "total descending"}
+    )
+    return fig
+
+
 def confidence_bar(df) -> go.Figure:
     """Bar chart of activities per ChEMBL assay confidence score."""
     fig = px.bar(
