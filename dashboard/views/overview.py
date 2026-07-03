@@ -7,11 +7,13 @@ from dashboard import data, logic
 _GUIDE = """
 **Use the pages in the sidebar:**
 
-- **📚 Compound Library** — browse and filter all compounds; open one for structure, properties and its per-target potency.
-- **📊 SAR Ranking** — rank compounds by median potency for a chosen target.
-- **🎯 Selectivity** — multi-target compounds: selectivity index (best vs. second-best target) against potency.
-- **🧪 Chemical Space** — physicochemical profile with an approved-vs-research view.
-- **🔎 Data Quality** — provenance: ChEMBL release, rows per layer, assay-confidence distribution.
+- **Compound Library** — browse and filter all compounds; open one for structure, properties, its per-target potency and structural analogs.
+- **SAR Ranking** — rank compounds by median potency for a chosen target.
+- **Activity Cliffs** — pairs of similar compounds with a large potency gap on the same target, ranked by SALI.
+- **Chemical Series** — compounds grouped by Bemis-Murcko scaffold; series size, potency spread and target reach.
+- **Selectivity** — multi-target compounds: selectivity index (best vs. second-best target) against potency.
+- **Chemical Space** — physicochemical profile with an approved-vs-research view.
+- **Data Quality** — provenance: ChEMBL release, rows per layer, assay-confidence distribution.
 
 The **Scope** selector (top right) narrows every page by target, approval status and minimum potency.
 """

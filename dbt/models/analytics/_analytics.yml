@@ -134,3 +134,17 @@ models:
               arguments:
                 to: ref('dim_compound')
                 field: compound_key
+
+  - name: mart_chemical_series
+    description: "Chemical series (grain: scaffold): per Murcko scaffold, member count, potency spread and target reach."
+    columns:
+      - name: scaffold_key
+        tests:
+          - unique
+          - not_null
+          - relationships:
+              arguments:
+                to: ref('dim_scaffold')
+                field: scaffold_key
+      - name: n_compounds
+        tests: [not_null]

@@ -21,6 +21,7 @@ import streamlit as st  # noqa: E402
 from dashboard import data  # noqa: E402
 from dashboard.views import (  # noqa: E402
     activity_cliffs,
+    chemical_series,
     chemical_space,
     compound_library,
     data_quality,
@@ -93,6 +94,10 @@ def _chemical_space_page():
     chemical_space.render(_connection(), _scope())
 
 
+def _chemical_series_page():
+    chemical_series.render(_connection(), _scope())
+
+
 def _data_quality_page():
     data_quality.render(_connection(), _scope())
 
@@ -135,13 +140,14 @@ st.session_state["scope"] = {
 
 nav = st.navigation(
     [
-        st.Page(_overview_page, title="Overview", icon="🏠", default=True),
-        st.Page(_library_page, title="Compound Library", icon="📚"),
-        st.Page(_sar_page, title="SAR Ranking", icon="📊"),
-        st.Page(_cliffs_page, title="Activity Cliffs", icon="🧗"),
-        st.Page(_selectivity_page, title="Selectivity", icon="🎯"),
-        st.Page(_chemical_space_page, title="Chemical Space", icon="🧪"),
-        st.Page(_data_quality_page, title="Data Quality", icon="🔎"),
+        st.Page(_overview_page, title="Overview", default=True),
+        st.Page(_library_page, title="Compound Library"),
+        st.Page(_sar_page, title="SAR Ranking"),
+        st.Page(_cliffs_page, title="Activity Cliffs"),
+        st.Page(_chemical_series_page, title="Chemical Series"),
+        st.Page(_selectivity_page, title="Selectivity"),
+        st.Page(_chemical_space_page, title="Chemical Space"),
+        st.Page(_data_quality_page, title="Data Quality"),
     ]
 )
 nav.run()
