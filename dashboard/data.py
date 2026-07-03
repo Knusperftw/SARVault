@@ -157,6 +157,47 @@ def load_activity_cliffs(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
         )
 
 
+def load_chemical_series(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
+    """Per-scaffold chemical series (empty if the mart is absent in an older warehouse)."""
+    try:
+        return con.execute("select * from main_analytics.mart_chemical_series").df()
+    except Exception:
+        return pd.DataFrame(
+            columns=[
+                "scaffold_key", "murcko_scaffold_smiles", "murcko_generic_smiles",
+                "n_compounds", "n_measured_compounds", "n_targets", "median_pchembl",
+                "max_pchembl", "min_pchembl", "pchembl_range", "top_compound",
+            ]
+        )
+
+
+def scaffold_members(con: duckdb.DuckDBPyConnection, scaffold_key: int) -> pd.DataFrame:
+    """Member compounds of one scaffold series, with structure and best potency."""
+    return con.execute(
+        """
+        with potency as (
+            select compound_key,
+                   max(median_pchembl)        as best_pchembl,
+                   count(distinct target_key) as n_targets
+            from main_analytics.mart_target_sar
+            group by compound_key
+        )
+        select
+            f.molecule_chembl_id,
+            c.pref_name,
+            c.canonical_smiles,
+            round(p.best_pchembl, 2) as best_pchembl,
+            coalesce(p.n_targets, 0) as n_targets
+        from main_analytics.mart_compound_fingerprint f
+        join main_marts.dim_compound c on f.compound_key = c.compound_key
+        left join potency p on f.compound_key = p.compound_key
+        where f.scaffold_key = ?
+        order by p.best_pchembl desc nulls last
+        """,
+        [scaffold_key],
+    ).df()
+
+
 def compound_target_profile(con: duckdb.DuckDBPyConnection, compound_key: int) -> pd.DataFrame:
     """Per-target potency for one compound (its SAR fingerprint)."""
     return con.execute(

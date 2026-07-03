@@ -101,6 +101,9 @@ into interactive structure search:
   (1 − Tanimoto)) and shown side by side; similarity and Δ-potency thresholds are
   adjustable, and identical-2D-fingerprint pairs (stereo/tautomer/replicate) are
   flagged rather than mistaken for structural cliffs.
+- **Chemical series** — the **Chemical Series** page groups compounds by their
+  Bemis-Murcko scaffold, showing each series' size, potency spread and target reach,
+  and drilling into the shared scaffold and its member compounds.
 
 To characterise a real build (survival through the filters, scaffold series vs.
 singletons, per-target pair budget, and the activity-cliff count across a

@@ -31,7 +31,7 @@ def _list_column_config():
         "molecule_chembl_id": st.column_config.TextColumn("ChEMBL ID"),
         "pref_name": st.column_config.TextColumn("Name"),
         "is_approved_drug": st.column_config.CheckboxColumn("Approved"),
-        "has_pdb": st.column_config.CheckboxColumn("🧬 3D", help="Has a co-crystal PDB entry"),
+        "has_pdb": st.column_config.CheckboxColumn("3D", help="Has a co-crystal PDB entry"),
         "best_pchembl": st.column_config.ProgressColumn(
             "Best pChEMBL", format="%.2f", min_value=0.0, max_value=14.0
         ),
@@ -188,7 +188,7 @@ def _detail(con, row, chosen, fingerprints=None, catalog=None, highlight_smarts=
 
     pdb = data.compound_pdb_entries(con, int(row["compound_key"]))
     if not pdb.empty:
-        with st.expander(f"🧬 3D co-crystal structure (PDBe) — {len(pdb)} entries"):
+        with st.expander(f"3D co-crystal structure (PDBe) — {len(pdb)} entries"):
             labels = {rec["pdb_id"]: _pdb_label(rec) for _, rec in pdb.iterrows()}
             pick = st.selectbox(
                 "PDB entry",
@@ -268,7 +268,7 @@ def _analog_column_config():
 
 
 def render(con, scope):
-    st.header("📚 Compound library")
+    st.header("Compound library")
     target_sar = data.load_target_sar(con)
     catalog = data.load_compound_catalog(con)
     keys = logic.resolve_scope_keys(target_sar, catalog, scope)

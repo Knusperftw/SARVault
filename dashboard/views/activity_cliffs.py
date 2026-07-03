@@ -73,7 +73,7 @@ def _pair_detail(row, smiles_by_id):
 
 
 def render(con, scope):
-    st.header("🧗 Activity cliffs")
+    st.header("Activity cliffs")
     st.write(
         "Structurally similar compounds with a large potency difference on the same "
         "target — the sharpest signal in SAR. SALI = |Δ pChEMBL| / (1 − Tanimoto)."

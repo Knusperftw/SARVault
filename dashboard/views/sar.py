@@ -6,7 +6,7 @@ from dashboard import charts, data, logic
 
 
 def render(con, scope):
-    st.header("📊 SAR ranking")
+    st.header("SAR ranking")
     target_sar = data.load_target_sar(con)
     catalog = data.load_compound_catalog(con)
     keys = logic.resolve_scope_keys(target_sar, catalog, scope)

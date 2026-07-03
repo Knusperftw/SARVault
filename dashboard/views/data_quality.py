@@ -6,7 +6,7 @@ from dashboard import charts, data
 
 
 def render(con, scope):  # scope intentionally unused: this view is warehouse-wide
-    st.header("🔎 Data quality & provenance")
+    st.header("Data quality & provenance")
 
     cfg = data.pipeline_config()
     cols = st.columns(3)
