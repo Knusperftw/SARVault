@@ -31,3 +31,5 @@ dbt/logs/
 
 # dbt usage tracking (machine-specific UUID)
 dbt/profiles/.user.yml
+gitleaks
+gitleaks.tar.gz
