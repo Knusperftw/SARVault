@@ -1,5 +1,7 @@
 """Pure DataFrame helpers for scope filtering and landing-page metrics."""
 
+import pandas as pd
+
 
 def _target_keys(target_sar, targets):
     if not targets:
@@ -44,7 +46,17 @@ _RO5_RULES = (
 
 
 def _missing(value) -> bool:
-    return value is None or (isinstance(value, float) and value != value)
+    """True for None and any pandas / NumPy missing scalar (NaN, pd.NA, NaT).
+
+    dim_compound fallback rows carry nullable-integer descriptors (hba, hbd, ...)
+    whose gaps arrive as pd.NA, which isinstance(value, float) does not catch.
+    """
+    if value is None:
+        return True
+    try:
+        return bool(pd.isna(value))
+    except (TypeError, ValueError):
+        return False
 
 
 def ro5_breakdown(row):
