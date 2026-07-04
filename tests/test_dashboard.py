@@ -218,6 +218,13 @@ def test_ro5_breakdown():
     assert missing["violations"] == 0
     assert missing["items"][0]["pass"] is None
 
+    # dim_compound fallback: nullable-integer gaps arrive as pd.NA, not float nan
+    na_row = pd.Series({"mw_freebase": 350.0, "alogp": 2.1, "hbd": 1, "hba": pd.NA})
+    na_row["hba"] = pd.NA
+    na_result = logic.ro5_breakdown(na_row)
+    assert na_result["violations"] == 0
+    assert na_result["items"][3]["pass"] is None
+
 
 def test_preselect_first_row():
     # First open: an absent key is seeded so row 0 is marked (matches the detail below).
@@ -325,13 +332,20 @@ def test_view_modules_import():
 
 
 def test_compound_property_formatting_is_string():
-    from dashboard.compound_detail import _fmt
+    from dashboard.compound_detail import _fmt, _num
 
     assert _fmt(350.44) == "350.44"
     assert _fmt("N") == "N"
     assert _fmt(3) == "3"
     assert _fmt(None) == "-"
     assert _fmt(float("nan")) == "-"
+    assert _fmt(pd.NA) == "-"
+
+    assert _num(3) == "3"
+    assert _num(2.6) == "2.6"
+    assert _num(None) == "-"
+    assert _num(float("nan")) == "-"
+    assert _num(pd.NA) == "-"
 
 
 # --- warehouse bootstrap (cloud fetch-at-boot) ---

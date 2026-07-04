@@ -34,7 +34,7 @@ _METHOD_SHORT = {
 
 
 def _fmt(value) -> str:
-    if value is None or (isinstance(value, float) and pd.isna(value)):
+    if value is None or pd.isna(value):
         return "-"
     if isinstance(value, float):
         return f"{value:.2f}"
@@ -42,7 +42,7 @@ def _fmt(value) -> str:
 
 
 def _num(value) -> str:
-    if value is None or (isinstance(value, float) and pd.isna(value)):
+    if value is None or pd.isna(value):
         return "-"
     fv = round(float(value), 1)
     return str(int(fv)) if fv == int(fv) else f"{fv:.1f}"
