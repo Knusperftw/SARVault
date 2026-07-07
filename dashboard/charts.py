@@ -231,3 +231,19 @@ def embedding_scatter(df, color_by: str = "potency", top_scaffolds: int = 10) ->
         xaxis={"showticklabels": False}, yaxis={"showticklabels": False},
     )
     return fig
+
+
+def payload_class_potency(df) -> go.Figure:
+    """Distribution (violin + inner box) of per-compound best pChEMBL per payload class."""
+    if df is None or df.empty:
+        return go.Figure()
+    fig = px.violin(
+        df,
+        x="payload_class",
+        y="best_pchembl",
+        box=True,
+        points=False,
+        labels={"payload_class": "payload class", "best_pchembl": "best pChEMBL"},
+    )
+    fig.update_layout(height=420, margin={"l": 10, "r": 10, "t": 10, "b": 40})
+    return fig

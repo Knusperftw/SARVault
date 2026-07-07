@@ -248,3 +248,14 @@ def step_selection(state, key: str, delta: int, n: int) -> None:
     current = state.get(key, {}).get("selection", {}).get("rows") or [0]
     new_row = min(max(current[0] + delta, 0), n - 1)
     state[key] = {"selection": {"rows": [new_row], "columns": [], "cells": []}}
+
+
+def payload_class_potency(catalog):
+    """Tidy [payload_class, best_pchembl] rows for the payload-class comparison chart.
+
+    Drops compounds without a payload_class or a measured best potency.
+    """
+    cols = ["payload_class", "best_pchembl"]
+    if catalog is None or not set(cols).issubset(catalog.columns):
+        return pd.DataFrame(columns=cols)
+    return catalog.loc[:, cols].dropna(subset=cols).reset_index(drop=True)

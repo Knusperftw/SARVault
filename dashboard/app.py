@@ -25,6 +25,7 @@ from dashboard.views import (  # noqa: E402
     compound_library,
     data_quality,
     overview,
+    payload_comparison,
     sar,
     selectivity,
 )
@@ -94,6 +95,10 @@ def _data_quality_page():
     data_quality.render(_connection(), _scope())
 
 
+def _payload_classes_page():
+    payload_comparison.render(_connection(), _scope())
+
+
 try:
     data.ensure_warehouse(url=_warehouse_url(), token=_warehouse_token())
     con = _connection()
@@ -127,6 +132,7 @@ nav = st.navigation(
         st.Page(_cliffs_page, title="Activity Cliffs"),
         st.Page(_chemical_series_page, title="Chemical Series"),
         st.Page(_selectivity_page, title="Selectivity"),
+        st.Page(_payload_classes_page, title="Payload Classes"),
         st.Page(_chemical_space_page, title="Chemical Space"),
         st.Page(_data_quality_page, title="Data Quality"),
     ]
