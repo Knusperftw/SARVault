@@ -12,7 +12,7 @@ dependencies = [
 ]
 
 # Heavier stacks are wired in per milestone (see SPEC.md §12) to keep the
-# base install — and M0 CI — fast.
+# base install (and M0 CI) fast.
 [project.optional-dependencies]
 extract = [
   "requests>=2.31",
@@ -29,6 +29,13 @@ orchestration = [
   "dagster>=1.8",
   "dagster-webserver>=1.8",
   "dagster-dbt>=0.24",
+  # dagster pulls in grpcio-health-checking transitively. 1.82.0 regenerated its
+  # health_pb2 with protobuf gencode 7.35.0, but the dagster stack still caps the
+  # protobuf runtime at 6.x, so that gencode fails its runtime-version check at
+  # import (VersionError: runtime cannot be older than the linked gencode). Pin to
+  # the last 6.x-gencode line (1.81.x requires protobuf<7) so CI's fresh installs
+  # stay coherent. Drop the cap once the dagster stack allows protobuf 7.
+  "grpcio-health-checking<1.82",
   # dagster-dbt drives dbt via the CLI, so the `dbt` extra (dbt-duckdb) must be
   # installed alongside this one to run the pipeline (CI installs both).
 ]
