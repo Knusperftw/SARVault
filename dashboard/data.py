@@ -107,6 +107,19 @@ def load_compound_catalog(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
     return con.execute("select * from main_analytics.mart_compound_catalog").df()
 
 
+def load_payload_class_profile(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
+    """Per-payload-class SAR profile (empty if the mart is absent in an older warehouse)."""
+    try:
+        return con.execute("select * from main_analytics.mart_payload_class_profile").df()
+    except Exception:
+        return pd.DataFrame(
+            columns=[
+                "payload_class", "n_compounds", "n_measurements", "median_pchembl",
+                "max_pchembl", "p25_pchembl", "p75_pchembl", "n_sub_nanomolar",
+            ]
+        )
+
+
 def load_fingerprints(con: duckdb.DuckDBPyConnection) -> pd.DataFrame:
     """Per-compound ECFP4 hex fingerprint + scaffold (empty if the mart is absent).
 

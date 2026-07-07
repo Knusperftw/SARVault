@@ -150,3 +150,13 @@ models:
                 field: scaffold_key
       - name: n_compounds
         tests: [not_null]
+
+  - name: mart_payload_class_profile
+    description: "Payload-class SAR profile (grain: payload_class): per ADC-payload mechanism class, compound count, potency summary and sub-nanomolar count."
+    columns:
+      - name: payload_class
+        tests: [unique, not_null]
+      - name: n_compounds
+        tests: [not_null]
+      - name: median_pchembl
+        tests: [not_null]
